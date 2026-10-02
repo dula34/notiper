@@ -152,3 +152,7 @@ python3 -m venv .venv && .venv/bin/pip install -r requirements-dev.txt
 .venv/bin/pytest
 NOTIPER_DATA_DIR=./data .venv/bin/python -m notiper
 ```
+
+## License
+
+Licensed under the [Apache License, Version 2.0](LICENSE).
