@@ -1,0 +1,48 @@
+{% extends 'base.html' %}
+{% block title %}Templates{% endblock %}
+{% block content %}
+<div class="page-head">
+    <div>
+        <h1>Service templates</h1>
+        <p class="muted">Ready-made output formats for services. Start a converter from a template and adjust
+            the target URL, headers and the payload fields it reads.</p>
+    </div>
+    <a class="btn btn-primary" href="{{ url_for('library.template_new') }}">+ New template</a>
+</div>
+
+{% if not items %}
+<div class="card empty">
+    <h2>No templates</h2>
+    <p class="muted">Create one, or use “Save as template” on an existing converter.</p>
+</div>
+{% else %}
+<div class="card table-card">
+    <table>
+        <thead><tr><th>Service</th><th>Name</th><th>Target</th><th>Uses</th><th></th></tr></thead>
+        <tbody>
+        {% for t in items %}
+        {% set qps = t.query_params | fromjson %}
+        {% set headers = t.headers | fromjson %}
+        <tr>
+            <td class="nowrap">{{ t.service or '—' }}</td>
+            <td>
+                <a class="strong" href="{{ url_for('library.template_edit', template_id=t.id) }}">{{ t.name }}</a>
+                {% if t.description %}<div class="muted small">{{ t.description }}</div>{% endif %}
+            </td>
+            <td class="truncate small" title="{{ t.target_url }}"><span class="badge badge-muted">{{ t.method }}</span> {{ t.target_url }}</td>
+            <td class="small nowrap">
+                {% if qps %}<span class="badge badge-muted">{{ qps | length }} query</span>{% endif %}
+                {% if headers %}<span class="badge badge-muted" title="{{ headers | map(attribute='name') | join(', ') }}">{{ headers | length }} headers</span>{% endif %}
+                {% if t.body_format == 'text' %}<span class="badge badge-muted">text</span>{% endif %}
+            </td>
+            <td class="actions">
+                <a class="btn btn-primary btn-sm" href="{{ url_for('ui.converter_new', **{'from': t.id}) }}">Use</a>
+                <a class="btn btn-ghost btn-sm" href="{{ url_for('library.template_edit', template_id=t.id) }}">Edit</a>
+            </td>
+        </tr>
+        {% endfor %}
+        </tbody>
+    </table>
+</div>
+{% endif %}
+{% endblock %}

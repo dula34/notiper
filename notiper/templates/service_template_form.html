@@ -1,0 +1,56 @@
+{% extends 'base.html' %}
+{% import '_mapping.html' as m with context %}
+{% block title %}{{ tpl.name or 'New template' }}{% endblock %}
+{% block main_class %}container wide{% endblock %}
+{% block content %}
+<div class="page-head">
+    <div>
+        <a class="muted small" href="{{ url_for('library.template_list') }}">← Templates</a>
+        <h1>{{ tpl.name if tpl.id else 'New service template' }}</h1>
+    </div>
+    {% if tpl.id %}
+    <div class="actions">
+        <a class="btn btn-primary" href="{{ url_for('ui.converter_new', **{'from': tpl.id}) }}">Create converter from this</a>
+        <form method="post" action="{{ url_for('library.template_delete', template_id=tpl.id) }}"
+              data-confirm="Delete template &quot;{{ tpl.name }}&quot;? Converters created from it are not affected.">
+            <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+            <button class="btn btn-danger" type="submit">Delete</button>
+        </form>
+    </div>
+    {% endif %}
+</div>
+
+{% if errors %}
+<div class="flash flash-error">
+    <strong>Please fix:</strong>
+    <ul>{% for e in errors %}<li>{{ e }}</li>{% endfor %}</ul>
+</div>
+{% endif %}
+
+<div class="split">
+    <form method="post" id="conv-form" class="card form-card" autocomplete="off">
+        <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+        <fieldset>
+            <div class="row">
+                <label class="grow">Name
+                    <input name="name" value="{{ tpl.name }}" required placeholder="Microsoft Teams – Adaptive Card">
+                </label>
+                <label>Service <span class="hint">used for grouping</span>
+                    <input name="service" value="{{ tpl.service }}" placeholder="Microsoft Teams" list="services">
+                    <datalist id="services">{% for s in services %}<option value="{{ s }}">{% endfor %}</datalist>
+                </label>
+            </div>
+            <label>Description
+                <input name="description" value="{{ tpl.description }}" placeholder="What it is for and what to change after using it">
+            </label>
+            {{ m.mapping_fields(tpl, admin=True) }}
+        </fieldset>
+        <div class="form-actions">
+            <button class="btn btn-primary" type="submit">{{ 'Save' if tpl.id else 'Create template' }}</button>
+            <a class="btn btn-ghost" href="{{ url_for('library.template_list') }}">Cancel</a>
+        </div>
+    </form>
+
+    {{ m.test_panel(tpl, admin=True, allow_send=False) }}
+</div>
+{% endblock %}

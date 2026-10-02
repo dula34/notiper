@@ -1,0 +1,53 @@
+{% extends 'base.html' %}
+{% block title %}Delivery #{{ d.id }}{% endblock %}
+{% block main_class %}container wide{% endblock %}
+{% block content %}
+<div class="page-head">
+    <div>
+        <a class="muted small" href="{{ url_for('ui.delivery_list') }}">← Deliveries</a>
+        <h1>Delivery #{{ d.id }}
+            <span class="badge {{ 'badge-ok' if d.success else 'badge-fail' }}">{{ 'sent' if d.success else 'failed' }}</span>
+        </h1>
+    </div>
+    <div class="actions">
+        {% if d.converter_id %}
+        <a class="btn btn-ghost" href="{{ url_for('ui.converter_edit', converter_id=d.converter_id) }}">Open converter</a>
+        <form method="post" action="{{ url_for('ui.delivery_replay', delivery_id=d.id) }}"
+              data-confirm="Send this payload to the target again using the current converter configuration?">
+            <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+            <button class="btn btn-primary" type="submit">Replay</button>
+        </form>
+        {% endif %}
+    </div>
+</div>
+
+<div class="card">
+    <dl class="facts">
+        <dt>Time</dt><dd>{{ d.received_at | dt }}</dd>
+        <dt>Converter</dt><dd>{{ d.converter_name or d.slug }}</dd>
+        <dt>Source</dt><dd><span class="badge badge-{{ d.kind }}">{{ d.kind }}</span>{% if d.username %} by {{ d.username }}{% endif %}</dd>
+        <dt>From</dt><dd>{{ d.source_ip or '—' }}</dd>
+        <dt>Target</dt><dd class="break">{{ d.target_url or '—' }}</dd>
+        <dt>Response</dt><dd>{{ ('HTTP ' ~ d.target_status) if d.target_status else '—' }} · {{ d.duration_ms }} ms</dd>
+        {% if d.error %}<dt>Error</dt><dd class="text-fail">{{ d.error }}</dd>{% endif %}
+    </dl>
+</div>
+
+<div class="split">
+    <section class="card">
+        <div class="panel-head"><h2>Received payload</h2>
+            <button type="button" class="link small" data-copy-target="#req-body">copy</button></div>
+        <pre class="code" id="req-body">{{ request_body or '(empty)' }}</pre>
+        <details>
+            <summary class="small muted">Request headers &amp; query</summary>
+            <pre class="code">{{ request_meta }}</pre>
+        </details>
+    </section>
+    <section class="card">
+        <div class="panel-head"><h2>Rendered</h2></div>
+        <pre class="code">{{ rendered or '(not rendered)' }}</pre>
+        <h2>Target response</h2>
+        <pre class="code">{{ response_body or '(none)' }}</pre>
+    </section>
+</div>
+{% endblock %}

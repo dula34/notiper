@@ -1,0 +1,118 @@
+{% extends 'base.html' %}
+{% import '_mapping.html' as m with context %}
+{% block title %}{{ conv.name or 'New converter' }}{% endblock %}
+{% block main_class %}container wide{% endblock %}
+{% block content %}
+{% set ro = g.user.role != 'admin' %}
+<div class="page-head">
+    <div>
+        <a class="muted small" href="{{ url_for('ui.converter_list') }}">← Converters</a>
+        <h1>{{ conv.name if conv.id else 'New converter' }}
+            {% if conv.id and not conv.enabled %}<span class="badge badge-muted">disabled</span>{% endif %}</h1>
+    </div>
+    {% if conv.id and not ro %}
+    <div class="actions">
+        <form method="post" action="{{ url_for('ui.converter_save_as_template', converter_id=conv.id) }}">
+            <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+            <button class="btn btn-ghost" type="submit" title="Create a service template from the saved configuration">Save as template</button>
+        </form>
+        <form method="post" action="{{ url_for('ui.converter_duplicate', converter_id=conv.id) }}">
+            <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+            <button class="btn btn-ghost" type="submit">Duplicate</button>
+        </form>
+        <form method="post" action="{{ url_for('ui.converter_delete', converter_id=conv.id) }}"
+              data-confirm="Delete converter &quot;{{ conv.name }}&quot;? Senders calling its URL will get 404.">
+            <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+            <button class="btn btn-danger" type="submit">Delete</button>
+        </form>
+    </div>
+    {% endif %}
+</div>
+
+{% if errors %}
+<div class="flash flash-error">
+    <strong>Please fix:</strong>
+    <ul>{% for e in errors %}<li>{{ e }}</li>{% endfor %}</ul>
+</div>
+{% endif %}
+
+{% if webhook_url %}
+<div class="endpoint card">
+    <span class="muted small">Send webhooks to</span>
+    <code class="copyable" data-copy-text="{{ webhook_url }}" title="Click to copy">{{ webhook_url }}</code>
+    {% if conv.token %}
+    <span class="muted small">with token in <code>?token=…</code>, <code>X-Notiper-Token</code> or <code>Authorization: Bearer …</code></span>
+    {% endif %}
+</div>
+{% endif %}
+
+{% if not conv.id and service_templates %}
+<div class="card start-from">
+    <label>Start from a service template
+        <select data-start-from data-base-url="{{ url_for('ui.converter_new') }}">
+            <option value="">— blank converter —</option>
+            {% for service, items in service_templates | groupby('service') %}
+            <optgroup label="{{ service or 'Other' }}">
+                {% for t in items %}<option value="{{ t.id }}" {{ 'selected' if from_template and from_template.id == t.id }}>{{ t.name }}</option>{% endfor %}
+            </optgroup>
+            {% endfor %}
+        </select>
+    </label>
+    {% if from_template %}
+    <p class="hint">Prefilled from <strong>{{ from_template.name }}</strong>{% if from_template.description %}: {{ from_template.description }}{% endif %}
+        Adjust the values below, e.g. the target URL, headers and the fields the template reads from the payload.</p>
+    {% endif %}
+    <a class="small" href="{{ url_for('library.template_list') }}">Manage templates →</a>
+</div>
+{% endif %}
+
+<div class="split">
+    <form method="post" id="conv-form" class="card form-card" autocomplete="off" data-dirty-check>
+        <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+        <fieldset {{ 'disabled' if ro }}>
+            <div class="row">
+                <label class="grow">Name
+                    <input name="name" value="{{ conv.name }}" placeholder="UniFi alarms → Teams" data-slug-source>
+                </label>
+                <label>Slug <span class="hint">part of the URL</span>
+                    <input name="slug" value="{{ conv.slug }}" required pattern="[a-z0-9][a-z0-9_\-]{0,63}" placeholder="unifi" data-slug-target {{ 'data-slug-touched' if conv.slug }}>
+                </label>
+            </div>
+            <label>Description
+                <input name="description" value="{{ conv.description }}" placeholder="Optional note for your team">
+            </label>
+
+            {{ m.mapping_fields(conv, admin=not ro) }}
+
+            <div class="row">
+                <label class="shrink">Timeout (s)
+                    <input name="timeout" type="number" min="1" max="120" value="{{ conv.timeout }}">
+                </label>
+                <label class="grow">Incoming token <span class="hint">empty = anyone can call the incoming URL</span>
+                    {% if ro %}
+                    <input value="{{ '•••••••• (hidden)' if conv.token else '' }}" placeholder="none">
+                    {% else %}
+                    <span class="input-group">
+                        <input name="token" value="{{ conv.token }}" data-token-input>
+                        <button type="button" class="btn btn-ghost" data-generate-token>Generate</button>
+                    </span>
+                    {% endif %}
+                </label>
+            </div>
+            <div class="row checks">
+                <label class="check"><input type="checkbox" name="enabled" {{ 'checked' if conv.enabled }}> Enabled</label>
+                <label class="check"><input type="checkbox" name="verify_tls" {{ 'checked' if conv.verify_tls }}> Verify target TLS certificate</label>
+            </div>
+        </fieldset>
+        {% if not ro %}
+        <div class="form-actions">
+            <button class="btn btn-primary" type="submit">{{ 'Save' if conv.id else 'Create converter' }}</button>
+            <a class="btn btn-ghost" href="{{ url_for('ui.converter_list') }}">Cancel</a>
+        </div>
+        {% endif %}
+    </form>
+
+    {{ m.test_panel(conv, admin=not ro, converter_id=conv.id,
+                    last_url=url_for('ui.converter_last_payload', converter_id=conv.id) if conv.id else None) }}
+</div>
+{% endblock %}

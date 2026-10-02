@@ -1,0 +1,20 @@
+{% extends 'base.html' %}
+{% block title %}First run setup{% endblock %}
+{% block main_class %}auth-page{% endblock %}
+{% block content %}
+<form method="post" class="card auth-card">
+    <div class="brand brand-lg"><span class="logo">N</span>Notiper</div>
+    <p class="muted">No users exist yet. Create the first administrator account.</p>
+    <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+    <label>Username
+        <input name="username" autocomplete="username" required autofocus value="{{ request.form.username or 'admin' }}">
+    </label>
+    <label>Password
+        <input name="password" type="password" autocomplete="new-password" minlength="8" required>
+    </label>
+    <label>Repeat password
+        <input name="password_confirm" type="password" autocomplete="new-password" minlength="8" required>
+    </label>
+    <button class="btn btn-primary btn-block" type="submit">Create admin</button>
+</form>
+{% endblock %}

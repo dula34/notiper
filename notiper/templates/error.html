@@ -1,0 +1,9 @@
+{% extends 'base.html' %}
+{% block title %}{{ error.code }}{% endblock %}
+{% block content %}
+<div class="card narrow center">
+    <h1>{{ error.code }} · {{ error.name }}</h1>
+    <p class="muted">{{ error.description }}</p>
+    <a class="btn btn-ghost" href="{{ url_for('ui.index') }}">Back to Notiper</a>
+</div>
+{% endblock %}

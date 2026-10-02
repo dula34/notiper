@@ -1,0 +1,28 @@
+services:
+  notiper:
+    build: .
+    image: notiper:latest
+    container_name: notiper
+    restart: unless-stopped
+    ports:
+      - "12353:12353"
+    volumes:
+      - notiper-data:/data
+      # or a host folder, e.g. on Synology:
+      # - /volume1/docker/notiper:/data
+    environment:
+      TZ: Europe/Bratislava
+      # Owner of the data directory. On Synology use your user's ids (check with `id` over SSH), e.g. 1026 / 100.
+      PUID: "1000"
+      PGID: "1000"
+      NOTIPER_LOG_LEVEL: info
+      # Optional: create the first admin automatically (otherwise the UI asks on first visit).
+      # NOTIPER_ADMIN_USERNAME: admin
+      # NOTIPER_ADMIN_PASSWORD: change-me-please
+      # Behind a reverse proxy (Traefik, nginx, Caddy) with HTTPS:
+      # NOTIPER_TRUST_PROXY: "1"
+      # NOTIPER_SECURE_COOKIES: "1"
+      # NOTIPER_PUBLIC_URL: https://notiper.example.com
+
+volumes:
+  notiper-data:

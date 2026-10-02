@@ -1,0 +1,43 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <meta name="csrf-token" content="{{ csrf_token() }}">
+    <title>{% block title %}{% endblock %} · Notiper</title>
+    <link rel="stylesheet" href="{{ static_url('style.css') }}">
+    <link rel="icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 32 32'><rect width='32' height='32' rx='7' fill='%230284c7'/><path d='M9 22V10l14 12V10' stroke='white' stroke-width='3' fill='none' stroke-linecap='round' stroke-linejoin='round'/></svg>">
+</head>
+<body>
+{% if g.user %}
+<header class="topbar">
+    <a class="brand" href="{{ url_for('ui.index') }}"><span class="logo">N</span>Notiper</a>
+    <nav>
+        <a href="{{ url_for('ui.converter_list') }}" class="{{ 'active' if request.endpoint and request.endpoint.startswith('ui.converter') }}">Converters</a>
+        <a href="{{ url_for('ui.delivery_list') }}" class="{{ 'active' if request.endpoint and request.endpoint.startswith('ui.deliver') }}">Deliveries</a>
+        {% if g.user.role == 'admin' %}
+        <a href="{{ url_for('library.template_list') }}" class="{{ 'active' if request.blueprint == 'library' }}">Templates</a>
+        <a href="{{ url_for('admin.user_list') }}" class="{{ 'active' if request.blueprint == 'admin' }}">Users</a>
+        {% endif %}
+    </nav>
+    <div class="who">
+        <a href="{{ url_for('auth.account') }}" title="Account">{{ g.user.username }} <span class="badge">{{ g.user.role }}</span></a>
+        <form method="post" action="{{ url_for('auth.logout') }}">
+            <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+            <button class="btn btn-ghost btn-sm" type="submit">Log out</button>
+        </form>
+    </div>
+</header>
+{% endif %}
+<main class="{% block main_class %}container{% endblock %}">
+    {% with messages = get_flashed_messages(with_categories=true) %}
+        {% for category, message in messages %}
+        <div class="flash flash-{{ category }}">{{ message }}</div>
+        {% endfor %}
+    {% endwith %}
+    {% block content %}{% endblock %}
+</main>
+<footer>Notiper {{ version }} · webhook mapper</footer>
+<script src="{{ static_url('app.js') }}"></script>
+</body>
+</html>

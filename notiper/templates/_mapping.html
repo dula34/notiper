@@ -1,0 +1,124 @@
+{% macro qp_row(key, value) -%}
+<div class="qp-row">
+    <input name="qp_key" value="{{ key }}" placeholder="name" aria-label="Parameter name">
+    <span class="muted">=</span>
+    <input name="qp_value" value="{{ value }}" class="code" placeholder="{{ '{{ events[0].alert_key }}' }}" aria-label="Parameter value template">
+    <button type="button" class="btn btn-ghost btn-sm" data-qp-remove title="Remove parameter">✕</button>
+</div>
+{%- endmacro %}
+
+
+{% macro header_row(name, value) -%}
+<div class="qp-row">
+    <input name="header_name" value="{{ name }}" placeholder="Authorization" aria-label="Header name">
+    <span class="muted">:</span>
+    <span class="masked-input">
+        <input name="header_value" value="{{ value }}" type="password" class="code" placeholder="Bearer {{ '{{ request.headers[\'X-Token\'] }}' }}" aria-label="Header value template" autocomplete="off">
+        <button type="button" class="icon-btn" data-reveal title="Show / hide value" aria-label="Show or hide value">
+            <svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M2 12s3.5-7 10-7 10 7 10 7-3.5 7-10 7S2 12 2 12z"/><circle cx="12" cy="12" r="3"/><line class="eye-slash" x1="3" y1="3" x2="21" y2="21"/></svg>
+        </button>
+    </span>
+    <button type="button" class="btn btn-ghost btn-sm" data-qp-remove title="Remove header">✕</button>
+</div>
+{%- endmacro %}
+
+
+{# Fields shared by converters and service templates. Must be placed inside the form's <fieldset>. #}
+{% macro mapping_fields(item, admin=True) %}
+{% set qps = item.query_params | fromjson %}
+{% set headers = item.headers | fromjson %}
+<div class="row">
+    <label class="shrink">Method
+        <select name="method">
+            {% for m in ['POST', 'PUT', 'PATCH', 'GET'] %}<option {{ 'selected' if item.method == m }}>{{ m }}</option>{% endfor %}
+        </select>
+    </label>
+    <label class="grow">Target URL <span class="hint">may contain {{ '{{ … }}' }}</span>
+        <input name="target_url" value="{{ item.target_url }}" required placeholder="https://example.webhook.office.com/…">
+    </label>
+    <label class="shrink">Body format
+        <select name="body_format">
+            <option value="json" {{ 'selected' if item.body_format == 'json' }}>JSON</option>
+            <option value="text" {{ 'selected' if item.body_format == 'text' }}>Plain text</option>
+        </select>
+    </label>
+</div>
+
+<details class="panel" data-pairs="qp" {{ 'open' if qps }}>
+    <summary>Query parameters <span class="badge badge-muted" data-pairs-count>{{ qps | length }}</span>
+        <span class="hint">added to the target URL · values are templates</span></summary>
+    <div class="panel-body">
+        <div data-pairs-rows>
+            {% for p in qps %}{{ qp_row(p.key, p.value) }}{% endfor %}
+        </div>
+        <template data-pairs-template>{{ qp_row('', '') }}</template>
+        <button type="button" class="btn btn-ghost btn-sm" data-pairs-add>+ Add parameter</button>
+        <p class="hint">Values are URL-encoded. A parameter that renders to an empty value is left out,
+            so <code>{{ '{% if … %}…{% endif %}' }}</code> makes it optional.</p>
+    </div>
+</details>
+
+<details class="panel" data-pairs="header" {{ 'open' if headers }}>
+    <summary>Headers <span class="badge badge-muted" data-pairs-count>{{ headers | length }}</span>
+        <span class="hint">sent to the target · values are templates</span></summary>
+    <div class="panel-body">
+        {% if admin %}
+        <div data-pairs-rows>
+            {% for h in headers %}{{ header_row(h.name, h.value) }}{% endfor %}
+        </div>
+        <template data-pairs-template>{{ header_row('', '') }}</template>
+        <button type="button" class="btn btn-ghost btn-sm" data-pairs-add>+ Add header</button>
+        <p class="hint">Values are hidden by default because they often hold tokens. A header that renders to an
+            empty value is not sent. <code>Content-Type</code> is set from the body format unless you override it.</p>
+        {% else %}
+        {% for h in headers %}<code>{{ h.name }}</code> {% else %}<span class="muted small">none</span>{% endfor %}
+        <p class="hint">Header values are visible to admins only.</p>
+        {% endif %}
+    </div>
+</details>
+
+<label>Template
+    <span class="hint">Jinja2 · output is parsed as JSON/YAML unless body format is text</span>
+    <textarea name="template" class="code" rows="18" spellcheck="false" required>{{ item.template }}</textarea>
+</label>
+<details class="help">
+    <summary>Template cheat sheet</summary>
+    <ul>
+        <li>Top-level JSON keys are variables: <code>{{ '{{ events[0].alert_key }}' }}</code></li>
+        <li><code>payload</code> is the whole body, <code>request.headers</code> / <code>request.query</code> the incoming request</li>
+        <li>Use <code>| json</code> to safely quote a value: <code>"text": {{ '{{ message | json }}' }}</code></li>
+        <li>Loops: <code>{{ '{% for e in events %}…{% if not loop.last %},{% endif %}{% endfor %}' }}</code></li>
+        <li>Defaults: <code>{{ "{{ device.name | default('unknown') }}" }}</code></li>
+    </ul>
+</details>
+{% endmacro %}
+
+
+{% macro test_panel(item, admin, converter_id=None, last_url=None, allow_send=True) %}
+<section class="card test-panel" id="test-panel"
+         data-converter-id="{{ converter_id or '' }}"
+         data-admin="{{ '1' if admin else '0' }}"
+         data-preview-url="{{ url_for('ui.converter_preview') }}"
+         data-send-url="{{ url_for('ui.converter_send_test') }}"
+         {% if last_url %}data-last-url="{{ last_url }}"{% endif %}>
+    <div class="panel-head">
+        <h2>Test</h2>
+        <span class="muted small" data-live-status></span>
+    </div>
+    <label>Sample payload (JSON)
+        {% if last_url %}<button type="button" class="link small" data-load-last>load last received</button>{% endif %}
+        <textarea name="sample_payload" form="conv-form" class="code" rows="10" spellcheck="false"
+                  placeholder='{"events": [{"id": 1, "alert_key": "client.connected"}]}' data-payload>{{ item.sample_payload }}</textarea>
+    </label>
+    {% if admin %}<p class="hint">The sample payload is stored when you save.</p>{% endif %}
+    <div class="test-actions">
+        <button type="button" class="btn btn-ghost" data-preview>Preview</button>
+        {% if allow_send %}<button type="button" class="btn btn-primary" data-send>Send test</button>{% endif %}
+        <label class="check small"><input type="checkbox" data-live checked> live preview</label>
+    </div>
+    <div class="result" data-result hidden>
+        <div class="result-line" data-result-line></div>
+        <pre class="code" data-result-body></pre>
+    </div>
+</section>
+{% endmacro %}

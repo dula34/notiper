@@ -1,0 +1,22 @@
+services:
+  notiper:
+    build: .
+    image: notiper:latest
+    container_name: notiper
+    restart: unless-stopped
+    ports:
+      - "8217:12353"
+    volumes:
+      - /volume1/docker/notiper:/data:rw
+    environment:
+      PUID: "1026"
+      PGID: "100"
+      TZ: Europe/Bratislava
+      NOTIPER_LOG_LEVEL: info
+      # Optional: create the first admin automatically (otherwise the UI asks on first visit).
+      NOTIPER_ADMIN_USERNAME: admin
+      NOTIPER_ADMIN_PASSWORD: changeme
+      # Behind a reverse proxy (Traefik, nginx, Caddy) with HTTPS:
+      # NOTIPER_TRUST_PROXY: "1"
+      # NOTIPER_SECURE_COOKIES: "1"
+      # NOTIPER_PUBLIC_URL: https://notiper.example.com

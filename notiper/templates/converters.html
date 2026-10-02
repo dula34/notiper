@@ -1,0 +1,75 @@
+{% extends 'base.html' %}
+{% block title %}Converters{% endblock %}
+{% block content %}
+<div class="page-head">
+    <div>
+        <h1>Converters</h1>
+        <p class="muted">Each converter receives a webhook, maps it through a template and forwards the result.</p>
+    </div>
+    {% if g.user.role == 'admin' %}
+    <a class="btn btn-primary" href="{{ url_for('ui.converter_new') }}">+ New converter</a>
+    {% endif %}
+</div>
+
+{% if not items %}
+<div class="card empty">
+    <h2>No converters yet</h2>
+    {% if g.user.role == 'admin' %}
+    <p class="muted">Create your first mapping, e.g. UniFi alarm → Microsoft Teams card.</p>
+    <a class="btn btn-primary" href="{{ url_for('ui.converter_new') }}">Create converter</a>
+    {% else %}
+    <p class="muted">Ask an administrator to create one.</p>
+    {% endif %}
+</div>
+{% else %}
+<div class="card table-card">
+    <table>
+        <thead>
+        <tr>
+            <th>Name</th>
+            <th>Incoming URL</th>
+            <th>Target</th>
+            <th>Last delivery</th>
+            <th class="num">24h</th>
+            <th></th>
+        </tr>
+        </thead>
+        <tbody>
+        {% for c in items %}
+        {% set url = webhook_url(c.slug) %}
+        <tr class="{{ 'row-disabled' if not c.enabled }}">
+            <td>
+                <a class="strong" href="{{ url_for('ui.converter_edit', converter_id=c.id) }}">{{ c.name }}</a>
+                {% if not c.enabled %}<span class="badge badge-muted">disabled</span>{% endif %}
+                {% if c.token %}<span class="badge" title="Requires token">🔒 token</span>{% endif %}
+                {% if c.description %}<div class="muted small">{{ c.description }}</div>{% endif %}
+            </td>
+            <td>
+                <code class="copyable" data-copy-text="{{ url }}" title="Click to copy">{{ url }}</code>
+            </td>
+            <td class="truncate small" title="{{ c.target_url }}"><span class="badge badge-muted">{{ c.method }}</span> {{ c.target_url }}</td>
+            <td class="small">
+                {% if c.last_at %}
+                <span class="dot {{ 'dot-ok' if c.last_success else 'dot-fail' }}"></span>{{ c.last_at | dt }}
+                {% else %}<span class="muted">never</span>{% endif %}
+            </td>
+            <td class="num small">
+                <a href="{{ url_for('ui.delivery_list', converter=c.id) }}">{{ c.count_24h }}</a>
+                {% if c.failed_24h %}<span class="text-fail">({{ c.failed_24h }} failed)</span>{% endif %}
+            </td>
+            <td class="actions">
+                {% if g.user.role == 'admin' %}
+                <form method="post" action="{{ url_for('ui.converter_toggle', converter_id=c.id) }}">
+                    <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+                    <button class="btn btn-ghost btn-sm" type="submit">{{ 'Disable' if c.enabled else 'Enable' }}</button>
+                </form>
+                {% endif %}
+                <a class="btn btn-ghost btn-sm" href="{{ url_for('ui.converter_edit', converter_id=c.id) }}">{{ 'Edit' if g.user.role == 'admin' else 'Open' }}</a>
+            </td>
+        </tr>
+        {% endfor %}
+        </tbody>
+    </table>
+</div>
+{% endif %}
+{% endblock %}

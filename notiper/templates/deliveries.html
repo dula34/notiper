@@ -1,0 +1,65 @@
+{% extends 'base.html' %}
+{% block title %}Deliveries{% endblock %}
+{% block content %}
+<div class="page-head">
+    <div>
+        <h1>Deliveries</h1>
+        <p class="muted">Every received webhook, test and replay with the result from the target.</p>
+    </div>
+    {% if g.user.role == 'admin' and rows %}
+    <form method="post" action="{{ url_for('ui.delivery_clear') }}" data-confirm="Delete the whole delivery log?">
+        <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+        <button class="btn btn-ghost" type="submit">Clear log</button>
+    </form>
+    {% endif %}
+</div>
+
+<form method="get" class="filters card">
+    <select name="converter" onchange="this.form.submit()">
+        <option value="">All converters</option>
+        {% for c in converters %}<option value="{{ c.id }}" {{ 'selected' if filters.converter == c.id }}>{{ c.name }}</option>{% endfor %}
+    </select>
+    <select name="status" onchange="this.form.submit()">
+        <option value="">Any status</option>
+        <option value="ok" {{ 'selected' if filters.status == 'ok' }}>Successful</option>
+        <option value="failed" {{ 'selected' if filters.status == 'failed' }}>Failed</option>
+    </select>
+    <select name="kind" onchange="this.form.submit()">
+        <option value="">Any source</option>
+        {% for k in ['webhook', 'test', 'replay'] %}<option value="{{ k }}" {{ 'selected' if filters.kind == k }}>{{ k }}</option>{% endfor %}
+    </select>
+    <noscript><button class="btn btn-ghost btn-sm">Filter</button></noscript>
+</form>
+
+{% if not rows %}
+<div class="card empty"><p class="muted">Nothing here yet.</p></div>
+{% else %}
+<div class="card table-card">
+    <table>
+        <thead>
+        <tr><th>Time</th><th>Converter</th><th>Source</th><th>From</th><th>Result</th><th class="num">Duration</th></tr>
+        </thead>
+        <tbody>
+        {% for d in rows %}
+        <tr class="clickable" data-href="{{ url_for('ui.delivery_detail', delivery_id=d.id) }}">
+            <td class="small nowrap"><a href="{{ url_for('ui.delivery_detail', delivery_id=d.id) }}">{{ d.received_at | dt }}</a></td>
+            <td>{{ d.converter_name or d.slug }}{% if not d.converter_name %} <span class="badge badge-muted">deleted</span>{% endif %}</td>
+            <td><span class="badge badge-{{ d.kind }}">{{ d.kind }}</span></td>
+            <td class="small muted">{{ d.source_ip or '' }}</td>
+            <td class="small">
+                <span class="dot {{ 'dot-ok' if d.success else 'dot-fail' }}"></span>
+                {% if d.success %}HTTP {{ d.target_status }}{% else %}<span class="truncate-inline" title="{{ d.error }}">{{ d.error }}</span>{% endif %}
+            </td>
+            <td class="num small muted">{{ d.duration_ms }} ms</td>
+        </tr>
+        {% endfor %}
+        </tbody>
+    </table>
+</div>
+<div class="pager">
+    {% if page > 1 %}<a class="btn btn-ghost btn-sm" href="{{ url_for('ui.delivery_list', page=page - 1, **filters) }}">← Newer</a>{% endif %}
+    <span class="muted small">Page {{ page }}</span>
+    {% if has_next %}<a class="btn btn-ghost btn-sm" href="{{ url_for('ui.delivery_list', page=page + 1, **filters) }}">Older →</a>{% endif %}
+</div>
+{% endif %}
+{% endblock %}
