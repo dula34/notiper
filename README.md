@@ -23,6 +23,8 @@ JSON/YAML (so trailing commas are tolerated) and sent as JSON.
 ## Run
 
 ```bash
+git clone https://github.com/dula34/notiper.git
+cd notiper
 docker compose up -d --build
 ```
 
@@ -49,9 +51,10 @@ unknown converter, and `502` when rendering failed or the target rejected the me
 docker build -t notiper:latest .
 ```
 
+To build directly on a remote Docker host over SSH:
+
 ```bash
-DOCKER_HOST="ssh://user@ip -p <port>"
-docker build -t notiper:latest .
+DOCKER_HOST="ssh://user@host:port" docker build -t notiper:latest .
 ```
 
 Add `--no-cache` to force a full rebuild, e.g. when an old image keeps running after an update.
@@ -110,7 +113,9 @@ converter, so later changes to the template do not affect existing converters.
 | Variable                 | Default   | Description                                                  |
 |--------------------------|-----------|--------------------------------------------------------------|
 | `PUID` / `PGID`          | `1000`    | User / group the app runs as and that owns `/data`           |
+| `NOTIPER_HOST`           | `0.0.0.0` | Address to listen on                                         |
 | `NOTIPER_PORT`           | `12353`   | HTTP port                                                    |
+| `NOTIPER_THREADS`        | `8`       | Number of worker threads                                     |
 | `NOTIPER_DATA_DIR`       | `/data`   | Database and generated secret key                            |
 | `NOTIPER_ADMIN_USERNAME` |           | Create this admin on first start (only when no users exist)  |
 | `NOTIPER_ADMIN_PASSWORD` |           | Password for the admin above (min. 8 chars)                  |
@@ -124,6 +129,8 @@ converter, so later changes to the template do not affect existing converters.
 | `TZ`                     | `UTC`     | Timezone used in the UI                                      |
 
 ### Synology / bind-mounted folders
+
+`docker-compose-syno.yml` is a ready-made example for Synology (`docker compose -f docker-compose-syno.yml up -d --build`).
 
 The container starts as root, makes `/data` owned by `PUID:PGID` and then runs Notiper as that user.
 Set them to the owner of the mounted folder so you keep access to it from DSM:
